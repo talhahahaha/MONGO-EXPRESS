@@ -7,7 +7,7 @@ main().then(() => {console.log('Connected to MongoDB')})
     await mongoose.connect('mongodb://127.0.0.1:27017/whatsapp');
  }
 
-let allChats = [
+let chats = [
     {
         from: 'Alice',
         to: 'Bob',
@@ -34,7 +34,7 @@ let allChats = [
     }
 ];
 
-Chat.insertMany(allChats)
+Chat.insertMany(chats)
     .then(() => {
         console.log('All chats inserted');
     })
