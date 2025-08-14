@@ -42,8 +42,7 @@ app.use(methodOverride('_method')); // to use PUT and DELETE methods in forms
 
 
 //create route
-app.post('/chats',async(req, res) => {
-    try {
+app.post('/chats',asyncWrap(async(req, res) => {
 let {from, message, to} = req.body; // destructuring the request body
 let newChat = new Chat({
     from: from,
@@ -53,60 +52,50 @@ let newChat = new Chat({
 });
 await newChat.save();
         res.status(500).send('Internal Server Error');
-    } catch (err){
-        next(err);
-    }
-});
+}));
+
+ //asyncwrap
+ function asyncWrap(fn) {
+    return function(req, res, next) {
+        fn(req, res, next).catch(err => next(err))
+    };
+};
 
 //show-route
-app.get('/chats/:id', async(req, res,next)=>{
-    try {
-        let {id} = req.params; 
+app.get('/chats/:id', asyncWrap(async(req, res,next)=>{
+    let {id} = req.params; 
     let chat = await Chat.findById(id);
     if(!chat){
      next(new ExpressError(404, "Chat Not Found"));
     }
     res.render('edit.ejs', { chat });
-    } catch (err) {
-        next(err);
-    }
-});
+}));
 
 //edit route
-app.get('/chats/:id/edit', async(req, res) => {
-   try {
+app.get('/chats/:id/edit', asyncWrap(async(req, res) => {
      let {id}= req.params; // getting the id from the request parameters
     let chat =  await Chat.findById(id); 
     res.render('edit.ejs', { chat }); // rendering the edit view with the chat object
-   } catch (err) {
-       next(err);
-   }
-});
+
+}));
 
 //update route
-app.put('/chats/:id', async(req, res) => {
-   try {
-     let {id} = req.params; // getting the id from the request parameters
+app.put('/chats/:id', asyncWrap(async(req, res) => {
+   let {id} = req.params; // getting the id from the request parameters
     let {message:newMessage} = req.body; // getting the new message from the request body
     let updatedChat = await Chat.findByIdAndUpdate(id, {message:newMessage}, {runValidators: true});
     res.redirect('/chats'); // redirecting to the chats page
-   } catch (err) {
-       next(err);
-   }
-});
+}));
+
 
 
 
 //delete route
-app.delete('/chats/:id', async(req, res) => {
-try{
+app.delete('/chats/:id', asyncWrap(async(req, res) => {
     let {id} = req.params; // getting the id from the request parameters
 let deletedChat = await Chat.findByIdAndDelete(id);
 res.redirect('/chats'); // redirecting to the chats page
-} catch (err) {
-    next(err);
-}
-});
+}));
 
 
 
@@ -119,6 +108,20 @@ res.redirect('/chats'); // redirecting to the chats page
 
     app.get('/', (req, res) => {
     res.send('root is working');
+    });
+
+    const handleValidationErrors = (err) => {
+        console.log("this is a validation error");
+        console.dir(err.mesage);
+        return err;
+    };
+
+    app.use((err, req, res, next) => {
+        console.log(err.name);
+        if (err.name === 'ValidationError') {
+            err = handleValidationErrors(err);
+        }
+        next(err);
     });
 
 // error handling middleware
